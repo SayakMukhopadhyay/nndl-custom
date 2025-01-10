@@ -1,0 +1,27 @@
+[project]
+name = "nndl-custom"
+version = "0.1.0"
+description = "A modified and updated code sample to the neuralnetworksanddeeplearning.com material"
+authors = [{ name = "Sayak Mukhopadhyay" }]
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "numpy (>=2.2.1,<3.0.0)",
+    "pillow (>=11.1.0,<12.0.0)",
+    "black (>=24.10.0,<25.0.0)",
+]
+
+[project.urls]
+repository = "https://github.com/SayakMukhopadhyay/nndl-custom"
+
+[tool.poetry]
+package-mode = false
+requires-poetry = ">=2.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
