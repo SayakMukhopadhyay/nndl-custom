@@ -28,6 +28,7 @@ class Network(object):
             ]
             for mini_batch in mini_batches:
                 self.gradient_descent(mini_batch, eta)
+                # self.gradient_descent_matrix(mini_batch, eta)
 
             if test_data:
                 print(
@@ -49,6 +50,18 @@ class Network(object):
 
         self.biases = [bias - (eta / len(mini_batch)) * mdb for bias, mdb in zip(self.biases, mini_del_bias)]
         self.weights = [weight - (eta / len(mini_batch)) * mdw for weight, mdw in zip(self.weights, mini_del_weight)]
+
+    def gradient_descent_matrix(self, mini_batch, eta):
+        mini_batch_first_layer, mini_batch_expected_value = zip(*mini_batch)
+
+        del_bias, del_weight = self.back_propagation(
+            np.squeeze(np.array(mini_batch_first_layer)).transpose(),
+            np.squeeze(np.array(mini_batch_expected_value)).transpose(),
+        )
+
+        sum_del_bias = [np.expand_dims(np.sum(nb, axis=1), axis=1) for nb in del_bias]
+        self.biases = [bias - (eta / len(mini_batch)) * mdb for bias, mdb in zip(self.biases, sum_del_bias)]
+        self.weights = [weight - (eta / len(mini_batch)) * mdw for weight, mdw in zip(self.weights, del_weight)]
 
     def back_propagation(self, first_layer_activations, expected_values):
         activations, z_vectors = self.feed_forward(first_layer_activations)
