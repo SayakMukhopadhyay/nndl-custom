@@ -43,8 +43,8 @@ class Network(object):
         mini_del_bias = [np.zeros(bias.shape) for bias in self.biases]
         mini_del_weight = [np.zeros(weight.shape) for weight in self.weights]
 
-        for x, y in mini_batch:
-            del_bias, del_weight = self.back_propagation(x, y)
+        for first_layer_activations, expected_values in mini_batch:
+            del_bias, del_weight = self.back_propagation(first_layer_activations, expected_values)
             mini_del_bias = [mdb + db for mdb, db in zip(mini_del_bias, del_bias)]
             mini_del_weight = [mdw + dw for mdw, dw in zip(mini_del_weight, del_weight)]
 
@@ -59,8 +59,7 @@ class Network(object):
             np.squeeze(np.array(mini_batch_expected_value)).transpose(),
         )
 
-        sum_del_bias = [np.expand_dims(np.sum(nb, axis=1), axis=1) for nb in del_bias]
-        self.biases = [bias - (eta / len(mini_batch)) * mdb for bias, mdb in zip(self.biases, sum_del_bias)]
+        self.biases = [bias - (eta / len(mini_batch)) * mdb for bias, mdb in zip(self.biases, del_bias)]
         self.weights = [weight - (eta / len(mini_batch)) * mdw for weight, mdw in zip(self.weights, del_weight)]
 
     def back_propagation(self, first_layer_activations, expected_values):
@@ -72,13 +71,13 @@ class Network(object):
         # This calculates (a - y) * (d(sigmoid(z)/dz) which is dC/dz
         # In every step, the delta multiplied by the activation of the previous layer gives the partial gradient
         delta = self.cost_derivative(activations[-1], expected_values) * sigmoid_derivative(z_vectors[-1])
-        del_bias[-1] = delta
+        del_bias[-1] = np.sum(delta, axis=1, keepdims=True)
         # The transpose is cause both the delta and activations a column matrix
         del_weight[-1] = np.dot(delta, activations[-2].transpose())
 
         for l in range(2, self.num_layers):
             delta = np.dot(self.weights[-l + 1].transpose(), delta) * sigmoid_derivative(z_vectors[-l])
-            del_bias[-l] = delta
+            del_bias[-l] = np.sum(delta, axis=1, keepdims=True)
             del_weight[-l] = np.dot(delta, activations[-l - 1].transpose())
 
         return del_bias, del_weight

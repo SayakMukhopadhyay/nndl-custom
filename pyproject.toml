@@ -19,6 +19,12 @@ repository = "https://github.com/SayakMukhopadhyay/nndl-custom"
 package-mode = false
 requires-poetry = ">=2.0"
 
+[tool.poetry.group.notebooks.dependencies]
+pandas = "^2.2.3"
+matplotlib = "^3.10.0"
+notebook = "^7.3.2"
+ipympl = "^0.9.6"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

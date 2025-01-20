@@ -4,7 +4,6 @@
     <option name="enabledOnReformat" value="true" />
     <option name="sdkName" value="Poetry (nndl-custom)" />
   </component>
-  <component name="KubernetesApiProvider"><![CDATA[{}]]></component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
       <profile-state>
@@ -19,4 +18,5 @@
       </profile-state>
     </entry>
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Poetry (nndl-custom)" project-jdk-type="Python SDK" />
 </project>
