@@ -19,8 +19,8 @@ class Network(object):
         if test_data:
             test_data_size = len(test_data)
 
-        start_time = time.time()
         training_data_size = len(training_data)
+        start_time = time.time()
         for i in range(epochs):
             self.rng.shuffle(training_data)
             mini_batches = [
@@ -100,7 +100,10 @@ class Network(object):
     def evaluate(self, test_data):
         # Based on the trained weights and biases, the test data is used to predict the output activations
         # self.feed_forward(x) gives a tuple of the activations and z vectors of all layers
-        test_results = [(np.argmax(self.feed_forward(x)[0][-1]), y) for x, y in test_data]
+        test_results = [
+            (np.argmax(self.feed_forward(first_layer_activations)[0][-1]), expected_values)
+            for first_layer_activations, expected_values in test_data
+        ]
         return [sum(int(prediction == actual) for prediction, actual in test_results)]
 
 
