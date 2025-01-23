@@ -52,6 +52,7 @@ class Network(object):
         mini_batch_size,
         eta,
         lmbda=0.0,
+        early_stopping=None,
         evaluation_data=None,
         monitor_evaluation_cost=False,
         monitor_evaluation_accuracy=False,
@@ -67,7 +68,10 @@ class Network(object):
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
         start_time = time.time()
-        for i in range(epochs):
+
+        i = 0
+
+        while True:
             self.rng.shuffle(training_data)
             mini_batches = [
                 training_data[j : j + mini_batch_size] for j in range(0, training_data_size, mini_batch_size)
@@ -93,6 +97,18 @@ class Network(object):
                 evaluation_accuracy.append(accuracy)
                 print("Accuracy on evaluation data: {0} / {1}".format(accuracy, evaluation_data_size))
             print()
+
+            i = i + 1
+
+            if early_stopping is None:
+                if i < epochs:
+                    break
+            else:
+                if (
+                    len(evaluation_accuracy) > early_stopping
+                    and max(evaluation_accuracy[-early_stopping:]) < evaluation_accuracy[-early_stopping - 1]
+                ):
+                    break
 
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 

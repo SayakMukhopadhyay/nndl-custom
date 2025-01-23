@@ -39,7 +39,7 @@ def main():
 
     net2 = network2.Network([784, 30, 10])
     net2.stochastic_gradient_descent(
-        list(training_data), 30, 10, 0.5, 5.0, list(validation_data),
+        list(training_data), 30, 10, 0.5, 5.0, 10, list(validation_data),
         True,
         True,
         True,
