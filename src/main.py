@@ -39,12 +39,19 @@ def main():
 
     net2 = network2.Network([784, 30, 10])
     net2.stochastic_gradient_descent(
-        list(training_data), 30, 10, 0.5, 5.0, 10, 128,
-        list(validation_data),
-        True,
-        True,
-        True,
-        True
+        training_data=list(training_data),
+        epochs=30,
+        mini_batch_size=10,
+        initial_eta=0.5,
+        lmbda=5.0,
+        momentum_coefficient=0.1,
+        early_stopping=10,
+        learning_rate_schedule=128,
+        evaluation_data=list(validation_data),
+        monitor_evaluation_cost=True,
+        monitor_evaluation_accuracy=True,
+        monitor_training_cost=True,
+        monitor_training_accuracy=True,
     )
 
 

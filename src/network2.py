@@ -33,6 +33,8 @@ class Network(object):
 
         self.msr_weight_initializer()
 
+        self.velocity_initializer()
+
         self.cost = cost
 
     def msr_weight_initializer(self):
@@ -45,6 +47,12 @@ class Network(object):
         self.biases = [self.rng.standard_normal(size=(y, 1)) for y in self.sizes[1:]]
         self.weights = [self.rng.standard_normal(size=(y, x)) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
+    def velocity_initializer(self):
+        self.bias_velocities = [self.rng.standard_normal(size=(y, 1)) for y in self.sizes[1:]]
+        self.weight_velocities = [
+            self.rng.standard_normal(size=(y, x)) for x, y in zip(self.sizes[:-1], self.sizes[1:])
+        ]
+
     def stochastic_gradient_descent(
         self,
         training_data,
@@ -52,6 +60,7 @@ class Network(object):
         mini_batch_size,
         initial_eta,
         lmbda=0.0,
+        momentum_coefficient=0.0,
         early_stopping=None,
         learning_rate_schedule=None,
         evaluation_data=None,
@@ -80,7 +89,8 @@ class Network(object):
             ]
             for mini_batch in mini_batches:
                 # self.gradient_descent(mini_batch, eta, lmbda, training_data_size)
-                self.gradient_descent_matrix(mini_batch, eta, lmbda, training_data_size)
+                # self.gradient_descent_matrix(mini_batch, eta, lmbda, training_data_size)
+                self.gradient_descent_moment_matrix(mini_batch, eta, momentum_coefficient)
 
             print("Epoch {0} training complete, elapsed time: {1:.2f}s".format(i, time.time() - start_time))
             if monitor_training_cost:
@@ -104,7 +114,7 @@ class Network(object):
             i = i + 1
 
             if early_stopping is None:
-                if i < epochs:
+                if i >= epochs:
                     print("Max epochs {0} reached. Stopping...".format(epochs))
                     break
             else:
@@ -160,6 +170,26 @@ class Network(object):
             (1 - eta * (lmbda / training_data_size)) * weight - (eta / len(mini_batch)) * mdw
             for weight, mdw in zip(self.weights, del_weight)
         ]
+
+    def gradient_descent_moment_matrix(self, mini_batch, eta, momentum_coefficient):
+        mini_batch_first_layer, mini_batch_expected_value = zip(*mini_batch)
+
+        del_bias, del_weight = self.back_propagation(
+            np.squeeze(np.array(mini_batch_first_layer)).transpose(),
+            np.squeeze(np.array(mini_batch_expected_value)).transpose(),
+        )
+
+        self.bias_velocities = [
+            momentum_coefficient * velocity - (eta / len(mini_batch)) * mdb
+            for velocity, mdb in zip(self.bias_velocities, del_bias)
+        ]
+        self.weight_velocities = [
+            momentum_coefficient * velocity - (eta / len(mini_batch)) * mdw
+            for velocity, mdw in zip(self.weight_velocities, del_weight)
+        ]
+
+        self.biases = [bias + velocity for bias, velocity in zip(self.biases, self.bias_velocities)]
+        self.weights = [weight + velocity for weight, velocity in zip(self.weights, self.weight_velocities)]
 
     def back_propagation(self, first_layer_activations, expected_values):
         activations, z_vectors = self.feed_forward(first_layer_activations)
