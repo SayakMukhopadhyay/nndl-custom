@@ -50,9 +50,10 @@ class Network(object):
         training_data,
         epochs,
         mini_batch_size,
-        eta,
+        initial_eta,
         lmbda=0.0,
         early_stopping=None,
+        learning_rate_schedule=None,
         evaluation_data=None,
         monitor_evaluation_cost=False,
         monitor_evaluation_accuracy=False,
@@ -70,6 +71,7 @@ class Network(object):
         start_time = time.time()
 
         i = 0
+        eta = initial_eta
 
         while True:
             self.rng.shuffle(training_data)
@@ -77,7 +79,8 @@ class Network(object):
                 training_data[j : j + mini_batch_size] for j in range(0, training_data_size, mini_batch_size)
             ]
             for mini_batch in mini_batches:
-                self.gradient_descent(mini_batch, eta, lmbda, training_data_size)
+                # self.gradient_descent(mini_batch, eta, lmbda, training_data_size)
+                self.gradient_descent_matrix(mini_batch, eta, lmbda, training_data_size)
 
             print("Epoch {0} training complete, elapsed time: {1:.2f}s".format(i, time.time() - start_time))
             if monitor_training_cost:
@@ -102,13 +105,30 @@ class Network(object):
 
             if early_stopping is None:
                 if i < epochs:
+                    print("Max epochs {0} reached. Stopping...".format(epochs))
                     break
             else:
                 if (
                     len(evaluation_accuracy) > early_stopping
                     and max(evaluation_accuracy[-early_stopping:]) < evaluation_accuracy[-early_stopping - 1]
                 ):
-                    break
+                    if learning_rate_schedule is None:
+                        print("No improvement in evaluation accuracy in {0} epochs. Stopping...".format(early_stopping))
+                        break
+                    else:
+                        print(
+                            "No improvement in evaluation accuracy in {0} epochs. Halving learning rate...".format(
+                                early_stopping
+                            )
+                        )
+                        eta = eta / 2
+                        if initial_eta / learning_rate_schedule >= eta:
+                            print(
+                                "Learning rate halved to {0} of initial value. Stopping...".format(
+                                    learning_rate_schedule
+                                )
+                            )
+                            break
 
         return evaluation_cost, evaluation_accuracy, training_cost, training_accuracy
 
@@ -125,6 +145,20 @@ class Network(object):
         self.weights = [
             (1 - eta * (lmbda / training_data_size)) * weight - (eta / len(mini_batch)) * mdw
             for weight, mdw in zip(self.weights, mini_del_weight)
+        ]
+
+    def gradient_descent_matrix(self, mini_batch, eta, lmbda, training_data_size):
+        mini_batch_first_layer, mini_batch_expected_value = zip(*mini_batch)
+
+        del_bias, del_weight = self.back_propagation(
+            np.squeeze(np.array(mini_batch_first_layer)).transpose(),
+            np.squeeze(np.array(mini_batch_expected_value)).transpose(),
+        )
+
+        self.biases = [bias - (eta / len(mini_batch)) * mdb for bias, mdb in zip(self.biases, del_bias)]
+        self.weights = [
+            (1 - eta * (lmbda / training_data_size)) * weight - (eta / len(mini_batch)) * mdw
+            for weight, mdw in zip(self.weights, del_weight)
         ]
 
     def back_propagation(self, first_layer_activations, expected_values):
