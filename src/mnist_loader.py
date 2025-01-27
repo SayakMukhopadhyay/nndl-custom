@@ -1,8 +1,10 @@
 import gzip
 import os.path
 import pickle
+from typing import Any
 
 import numpy as np
+import pytensor
 from PIL import Image
 
 
@@ -105,7 +107,58 @@ def load_pickle_data_wrapper(pickle_file):
     return training_data_result, validation_data_result, test_data_result
 
 
+def load_pickle_data_shared(pickle_file):
+    training_data, validation_data, test_data = load_pickle_data(pickle_file)
+
+    def shared(data):
+        shared_x = pytensor.shared(np.asarray(data[0], dtype=pytensor.config.floatX), borrow=True)
+        shared_y = pytensor.shared(np.asarray(data[1], dtype=pytensor.config.floatX), borrow=True)
+        return shared_x, pytensor.tensor.cast(shared_y, "int32")
+
+    return shared(training_data), shared(validation_data), shared(test_data)
+
+
 def vectorised_result(j):
     result = np.zeros((10, 1))
     result[j] = 1.0
     return result
+
+
+def expand(image_tuple, image_rows, image_columns):
+    expanded_pairs: list[Any] = []
+    i = 0
+    for label, image in image_tuple:
+        expanded_pairs.append((label, image))
+        if (i + 1) % 1000 == 0:
+            print("Expanding image number {0}", i + 1)
+
+        for displacement, axis, index in [
+            (1, 0, 0),  # Vertically 1 step to the right
+            (-1, 0, image_columns),  # Vertically 1 step to the left
+            (1, 1, 0),  # Horizontally 1 step to the bottom
+            (-1, 1, image_rows),  # Horizontally 1 step to the top
+        ]:
+            # rolls the matrix in a direction bringing the edge elements to the other side
+            displaced_image = np.roll(image, displacement, axis)
+
+            # Ensures that the rolled over row or column doesn't contain any pixels
+            if axis == 0:
+                if displacement > 0:
+                    displaced_image[index : index + displacement, :] = np.zeros((displacement, image_columns))
+                else:
+                    displaced_image[index + displacement : index, :] = np.zeros((-displacement, image_columns))
+            else:
+                if displacement > 0:
+                    displaced_image[:, index : index + displacement] = np.zeros((image_rows, displacement))
+                else:
+                    displaced_image[:, index + displacement : index] = np.zeros((image_rows, -displacement))
+
+            expanded_pairs.append((label, displaced_image))
+
+        i += 1
+
+    np.random.default_rng().shuffle(expanded_pairs)
+
+    labels, images = zip(*expanded_pairs)
+
+    return np.array(labels), np.array(images)
